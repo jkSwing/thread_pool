@@ -33,7 +33,7 @@ struct Package
 template<typename T>
 class Evts
 {
-	static constexpr chrono::milliseconds TIME_LIMIT = chrono::milliseconds(1000);
+	static constexpr chrono::milliseconds TIME_LIMIT = chrono::milliseconds(3000);
 
 	set<Package<T>> st;
 	map<int, decltype(st.begin())> id_map;
@@ -50,7 +50,7 @@ class Evts
 
 		message(string_format("package", id, "received"));
 	}
-	void clear_timedouts()
+	void clear_timedouts() // TODO: report timedouts accurately
 	{
 		// lock_guard<mutex> lg(m);
 
@@ -59,10 +59,10 @@ class Evts
 			auto &ele = *st.begin();
 			if (chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - ele.tp) <= TIME_LIMIT) break;
 
-			st.erase(st.begin());
-			id_map.erase(ele.id);
-
 			message(string_format("package", ele.id, "timed out"));
+
+			id_map.erase(ele.id);
+			st.erase(st.begin());
 		}
 	}
 public:
@@ -81,14 +81,14 @@ public:
 	{
 		lock_guard<mutex> lg(m);
 
+		clear_timedouts();
+
 		if (id_map.find(id) == id_map.end())
 		{
 			message(string_format("package", id, "doesn't exists"));
 			return;
 		}
-
 		done(id);
-		clear_timedouts();
 	}
 };
 
